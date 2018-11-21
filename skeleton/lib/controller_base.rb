@@ -1,6 +1,10 @@
+require 'byebug'
+
 require 'active_support'
 require 'active_support/core_ext'
 require 'erb'
+require 'active_support/inflector'
+
 require_relative './session'
 
 class ControllerBase
@@ -29,7 +33,6 @@ class ControllerBase
   # Raise an error if the developer tries to double render.
   def render_content(content, content_type)
     render_error
-    
     @already_built_response = true
     
     @res['Content-Type'] = content_type
@@ -39,6 +42,16 @@ class ControllerBase
   # use ERB and binding to evaluate templates
   # pass the rendered html to render_content
   def render(template_name)
+    render_error
+    path = File.dirname(__FILE__)
+    path = File.join(path, "..", "views", self.class.name.underscore, "#{template_name}.html.erb")
+    # byebug
+    content = File.read(path)
+    erb_content = ERB.new(content).result(binding)
+    @res.write(erb_content)
+    
+    @res['Content-Type'] = 'text/html'
+    @already_built_response = true
   end
 
   # method exposing a `Session` object
