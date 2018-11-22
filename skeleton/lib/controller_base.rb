@@ -13,6 +13,7 @@ class ControllerBase
   # Setup the controller
   def initialize(req, res)
     @req, @res = req, res
+    @session ||= Session.new(req)
   end
 
   # Helper method to alias @already_built_response
@@ -23,9 +24,11 @@ class ControllerBase
   # Set the response status code and header
   def redirect_to(url)
     render_error
-    @res.status = 302
-    @res.header['location'] = url
+    res.status = 302
+    res.header['location'] = url
+    
     @already_built_response = true
+    @session.store_session(res)
   end
 
   # Populate the response with content.
@@ -34,9 +37,10 @@ class ControllerBase
   def render_content(content, content_type)
     render_error
     @already_built_response = true
+    @session.store_session(res)
     
-    @res['Content-Type'] = content_type
-    @res.write(content)
+    res['Content-Type'] = content_type
+    res.write(content)
   end
 
   # use ERB and binding to evaluate templates
@@ -48,14 +52,16 @@ class ControllerBase
     # byebug
     content = File.read(path)
     erb_content = ERB.new(content).result(binding)
-    @res.write(erb_content)
+    res.write(erb_content)
+    res['Content-Type'] = 'text/html'
     
-    @res['Content-Type'] = 'text/html'
     @already_built_response = true
+    @session.store_session(res)
   end
 
   # method exposing a `Session` object
   def session
+    @session
   end
 
   # use this with the router to call action_name (:index, :show, :create...)
